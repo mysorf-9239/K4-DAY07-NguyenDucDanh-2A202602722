@@ -1,6 +1,8 @@
 # Báo Cáo Cá Nhân — Lab 7: Embedding & Vector Store
 
-**Họ tên:** Nguyễn Đức Danh **Nhóm:** DDCC **Ngày:** 19/09/2026
+**Họ tên:** Nguyễn Đức Danh  
+**Nhóm:** DDCC  
+**Ngày:** 19/09/2026
 
 > **Nộp 1 bản / sinh viên.** Phần nhóm (lựa chọn tài liệu, thiết kế chiến lược, bộ câu hỏi đánh giá, demo) nộp chung 1
 > bản trong `REPORT_NHOM.md`. Chi tiết thang điểm: `docs/SCORING.md`.
@@ -111,30 +113,34 @@ kề được merge ngược trở lại đến gần `chunk_size` nhằm tránh
 
 **`add_documents` + `search` — hướng tiếp cận:**
 
-> **Sẽ chốt sau CP4.** Thiết kế hiện tại dự kiến chuẩn hóa mỗi `Document` thành một record gồm `id`, `content`,
-> `metadata` và embedding. `add_documents` chỉ lưu các `Document` được truyền vào, không tự thực hiện chunking.
->
-> Khi search, query được embed bằng cùng `embedding_fn`, sau đó tính similarity với các record và sắp xếp score giảm dần
-> để trả về tối đa `top_k` kết quả.
+Tôi sử dụng in-memory store để phần lõi độc lập với ChromaDB và có hành vi ổn định giữa các môi trường. Mỗi `Document`
+được chuẩn hóa thành một record gồm `id`, `content`, bản sao `metadata` và vector `embedding`; `add_documents` không tự
+chunk vì chunking được thực hiện ở tầng ngoài trước khi ingest.
+
+Khi search, query được embed bằng cùng `embedding_fn`, sau đó tính dot product với embedding của từng record. Vì các
+embedding dùng trong lab đã được chuẩn hóa, dot product có thể dùng trực tiếp làm similarity score. Kết quả được sắp xếp
+giảm dần theo score và giới hạn bởi `top_k`.
 
 **`search_with_filter` + `delete_document` — hướng tiếp cận:**
 
-> **Sẽ chốt sau CP4.** Metadata filtering được thực hiện **trước similarity search** để các slot `top_k` chỉ cạnh tranh
-> giữa những document hợp lệ. Nếu search trước rồi mới filter, các document sai metadata có thể chiếm hết top-k và làm mất
-> kết quả phù hợp.
->
-> `delete_document` sẽ xóa tất cả record có `metadata["doc_id"]` khớp với document cần xóa, cho phép một document gốc có
-> nhiều chunk nhưng vẫn xóa được toàn bộ cùng lúc.
+Metadata filtering được thực hiện **trước similarity search** để các vị trí trong `top_k` chỉ được cạnh tranh bởi các
+record thỏa điều kiện lọc. Nếu search trước rồi mới filter, các record sai metadata có thể chiếm hết top-k và làm mất
+các kết quả hợp lệ.
+
+`delete_document` xóa tất cả record có `metadata["doc_id"]` trùng với document gốc. `_make_record` sao chép metadata để
+không mutate dữ liệu từ caller và dùng `setdefault("doc_id", doc.id)` để luôn có `doc_id` nhưng vẫn giữ nguyên `doc_id`
+gốc nếu chunk đã được gán từ trước.
 
 ### Tác tử KnowledgeBaseAgent
 
 **`answer` — hướng tiếp cận:**
 
-> **Sẽ chốt sau CP4.** Agent dự kiến thực hiện ba bước: retrieve các chunk top-k, xây dựng context có đánh số nguồn, sau
-> đó gọi `llm_fn`.
->
-> Prompt sẽ yêu cầu model chỉ trả lời dựa trên context được cung cấp và không tự suy đoán khi context không chứa đáp án.
-> Các chunk sẽ được đánh số để hỗ trợ source traceability.
+Agent thực hiện pipeline **retrieve → construct context → call LLM**. Các chunk truy xuất được đánh số `[1]`, `[2]`,
+`[3]` và gắn nguồn từ `source_url`, `source`, `doc_id` hoặc `id` để hỗ trợ source traceability.
+
+Prompt yêu cầu model chỉ trả lời dựa trên context được cung cấp, không tự suy đoán khi thiếu thông tin và trích dẫn số
+nguồn khi có thể. Nếu store không trả về kết quả, agent trả thông báo không tìm thấy thông tin thay vì gọi LLM khi không
+có grounding.
 
 ---
 
@@ -144,51 +150,82 @@ Vượt qua bộ kiểm thử là điều kiện tính điểm phần này.
 
 ### Kết Quả Kiểm Thử
 
-```
-
 Kết quả:
 
 ```text
-collected 42 items / 19 deselected / 23 selected
+collected 42 items
 
-TestClassBasedInterfaces::test_chunker_classes_exist PASSED
+TestProjectStructure:
+- test_root_main_entrypoint_exists PASSED
+- test_src_package_exists PASSED
+
+TestClassBasedInterfaces:
+- test_chunker_classes_exist PASSED
+- test_mock_embedder_exists PASSED
 
 TestFixedSizeChunker:
-- test_chunks_respect_size PASSED
-- test_correct_number_of_chunks_no_overlap PASSED
-- test_empty_text_returns_empty_list PASSED
-- test_no_overlap_no_shared_content PASSED
-- test_overlap_creates_shared_content PASSED
-- test_returns_list PASSED
-- test_single_chunk_if_text_shorter PASSED
+- 7 tests PASSED
 
 TestSentenceChunker:
-- test_chunks_are_strings PASSED
-- test_respects_max_sentences PASSED
-- test_returns_list PASSED
-- test_single_sentence_max_gives_many_chunks PASSED
+- 4 tests PASSED
 
 TestRecursiveChunker:
-- test_chunks_within_size_when_possible PASSED
-- test_empty_separators_falls_back_gracefully PASSED
-- test_handles_double_newline_separator PASSED
-- test_returns_list PASSED
+- 4 tests PASSED
+
+TestEmbeddingStore:
+- 8 tests PASSED
+
+TestKnowledgeBaseAgent:
+- 2 tests PASSED
 
 TestComputeSimilarity:
-- test_identical_vectors_return_1 PASSED
-- test_opposite_vectors_return_minus_1 PASSED
-- test_orthogonal_vectors_return_0 PASSED
-- test_zero_vector_returns_0 PASSED
+- 4 tests PASSED
 
 TestCompareChunkingStrategies:
-- test_counts_are_positive PASSED
-- test_each_strategy_has_count_and_avg_length PASSED
-- test_returns_three_strategies PASSED
+- 3 tests PASSED
 
-23 passed, 19 deselected in 0.03s
+TestEmbeddingStoreSearchWithFilter:
+- 3 tests PASSED
+
+TestEmbeddingStoreDeleteDocument:
+- 3 tests PASSED
+
+42 passed in 0.03s
 ```
 
-**Số lượng bài test vượt qua (pass):** 23 / 42
+**Số lượng bài test vượt qua (pass): 42 / 42**
+
+### Manual RAG Demo
+
+Command:
+
+```bash
+python main.py "Chunking là gì?"
+```
+
+Kết quả chính:
+
+```text
+Loaded 5 documents
+Embedding backend: mock embeddings fallback
+Stored 5 documents in EmbeddingStore
+
+=== EmbeddingStore Search Test ===
+Query: Chunking là gì?
+1. score=0.150 source=data/rag_system_design.md
+2. score=0.027 source=data/python_intro.txt
+3. score=0.025 source=data/chunking_experiment_report.md
+
+=== KnowledgeBaseAgent Test ===
+Question: Chunking là gì?
+Agent answer:
+[DEMO LLM] Generated answer from prompt preview: ...
+```
+
+`main.py` đã chạy end-to-end từ load file → embedding → vector store → retrieval → `KnowledgeBaseAgent`. File
+`data/customer_support_playbook.txt` không tồn tại nên được bỏ qua đúng theo cơ chế xử lý missing file của demo. Backend
+mock chỉ được dùng để kiểm tra pipeline và test logic; benchmark chất lượng retrieval ở giai đoạn sau sẽ cần embedding
+có ngữ nghĩa.
 
 ---
 
@@ -214,7 +251,8 @@ Các dự đoán dưới đây được ghi trước khi chạy embedding/simila
 
 ## 5. Kết quả truy xuất của tôi (Competition Results) — Cá nhân (10 điểm)
 
-Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân của bạn trong gói `src`. **5 câu hỏi này phải trùng với các thành viên cùng nhóm** (xem `REPORT_NHOM.md`).
+Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân của bạn trong gói `src`. **5 câu hỏi này phải trùng với các
+thành viên cùng nhóm** (xem `REPORT_NHOM.md`).
 
 | # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
 |---|-----------------|--------------------------------------|------------|--------------------------------|---------------------------------|
