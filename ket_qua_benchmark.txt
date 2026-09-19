@@ -1,0 +1,117 @@
+=== CP5 RETRIEVAL BENCHMARK ===
+Data directory     : data/library-policy
+Strategy           : heading_aware
+Embedding backend  : gemini-embedding-001
+Documents          : 8
+Chunks loaded      : 36
+Chunks per document:
+  - borrowing-books-faculty: 1
+  - borrowing-books-undergraduate: 1
+  - borrowing-media: 4
+  - course-reserves-faculty: 9
+  - course-reserves-student: 4
+  - equipment-loans: 5
+  - interlibrary-consortium-loans: 8
+  - library-use-policy: 4
+
+========================================================================================
+Q1: How long can I borrow books?
+Metadata filter: {'audience': 'student'}
+Gold document(s): borrowing-books-undergraduate
+Gold answer: For an undergraduate student, the number of books is unlimited and the loan period is 6 weeks.
+  1. score=0.7045 doc_id=borrowing-books-undergraduate chunk=0 audience=student
+     # Borrowing Books - Undergraduate Students ## Georgetown Users | Type of Patron | # of Books | Loan Period | |------------------------|-----------:|-------------| | Undergraduate Students...
+  2. score=0.6792 doc_id=course-reserves-student chunk=0 audience=student
+     # Course Reserves Information for Students ## Book Reserves Use the search bar above to look up physical books. You can search by the book’s title, the professor’s last name, or the cours...
+  3. score=0.6603 doc_id=course-reserves-student chunk=2 audience=student
+     # Course Reserves Information for Students ## Overdue Fines for Reserve Materials - 2 hour, 4 hour and 24 hour reserve books: $1.00 for the first hour overdue, $0.50 for each additional h...
+Gold-document present in top-3: YES  (navigation aid only; CP6 relevance must be judged from chunk content)
+
+========================================================================================
+Q2: How many reserve items may a student borrow at one time?
+Metadata filter: None
+Gold document(s): course-reserves-student
+Gold answer: Students may borrow up to three reserve items at one time.
+  1. score=0.8385 doc_id=course-reserves-student chunk=0 audience=student
+     # Course Reserves Information for Students ## Book Reserves Use the search bar above to look up physical books. You can search by the book’s title, the professor’s last name, or the cours...
+  2. score=0.8005 doc_id=course-reserves-student chunk=1 audience=student
+     # Course Reserves Information for Students ## Book Reserves Reserve items are available on a first come, first served basis. Reserve items cannot be held, recalled, or renewed.
+  3. score=0.7783 doc_id=course-reserves-student chunk=2 audience=student
+     # Course Reserves Information for Students ## Overdue Fines for Reserve Materials - 2 hour, 4 hour and 24 hour reserve books: $1.00 for the first hour overdue, $0.50 for each additional h...
+Gold-document present in top-3: YES  (navigation aid only; CP6 relevance must be judged from chunk content)
+
+========================================================================================
+Q3: How do I request library equipment, and how far in advance must I reserve it?
+Metadata filter: None
+Gold document(s): equipment-loans
+Gold answer: From the equipment page, click "Reserve this item", log into the library account, and make the request. Reservations must be made at least 1 day in advance.
+  1. score=0.7839 doc_id=equipment-loans chunk=0 audience=all
+     # Equipment Loans ## Requesting Equipment Use the category links below to find the equipment you want to reserve. From the equipment page for the item you want, click the blue "Reserve th...
+  2. score=0.7595 doc_id=equipment-loans chunk=1 audience=all
+     # Equipment Loans ## Media Equipment Checkout / Reservations You must have a valid Georgetown GoCard to borrow equipment. See the Library's Borrowing Policies page for more information. R...
+  3. score=0.7217 doc_id=equipment-loans chunk=2 audience=all
+     # Equipment Loans ## Media Equipment Checkout / Reservations What you check out is a public device. You are responsible for clearing any data on the device and logging off of any personal...
+Gold-document present in top-3: YES  (navigation aid only; CP6 relevance must be judged from chunk content)
+
+========================================================================================
+Q4: How long do Interlibrary Loan requests usually take to arrive?
+Metadata filter: None
+Gold document(s): interlibrary-consortium-loans
+Gold answer: Average delivery times for Interlibrary Loans are 7-14 business days.
+  1. score=0.7744 doc_id=interlibrary-consortium-loans chunk=3 audience=all
+     # Interlibrary and Consortium Loans ## Items from Other Locations HoyaSearch items designated "Available at Lauinger Library Off-Campus Storage" or "Consortium Libraries" generally take 1...
+  2. score=0.7103 doc_id=interlibrary-consortium-loans chunk=1 audience=all
+     # Interlibrary and Consortium Loans ## Books & Media If the material you need is not available at Georgetown or Consortium Libraries, place a request through Interlibrary Loan. After you ...
+  3. score=0.7043 doc_id=interlibrary-consortium-loans chunk=2 audience=all
+     # Interlibrary and Consortium Loans ## Articles Check the journal title in Journal Finder or HoyaSearch first. If the desired journal volume and issue is not available, go to step 2. If L...
+Gold-document present in top-3: YES  (navigation aid only; CP6 relevance must be judged from chunk content)
+
+========================================================================================
+Q5: Where is food allowed in Lauinger Library, and what kinds of food are prohibited?
+Metadata filter: None
+Gold document(s): library-use-policy
+Gold answer: Food is allowed only on the second floor of Lauinger Library. Examples of prohibited food include pizza, hamburgers, fries, ice cream, hot subs, and other smelly, greasy, or messy foods.
+  1. score=0.8566 doc_id=library-use-policy chunk=1 audience=all
+     # Library Use Policies ## General Policies - Do not disturb the research and study of other users. - Do not tamper with or damage University resources and property. - Do not hamper the wo...
+  2. score=0.7796 doc_id=library-use-policy chunk=2 audience=all
+     # Library Use Policies ## General Policies - Examples of prohibited food: pizza, hamburgers, fries, ice cream, hot subs or any other smelly, greasy or messy foods. - Smoking and use of to...
+  3. score=0.6954 doc_id=library-use-policy chunk=0 audience=all
+     # Library Use Policies The primary purpose of Georgetown University Library is to support the research and information needs of the University's students, faculty and staff. They have pri...
+Gold-document present in top-3: YES  (navigation aid only; CP6 relevance must be judged from chunk content)
+=== CP6 AGENT EVALUATION ===
+Strategy: heading_aware
+Embedding: gemini-embedding-001
+Generation: gemini-3.8-flash
+
+================================================================================
+Q1 How long can I borrow books?
+Gold: For an undergraduate student, the number of books is unlimited and the loan period is 6 weeks.
+Agent: Based on the provided context, the loan period depends on the type of book:
+
+* **Undergraduate Student books:** The loan period is 6 weeks [1].
+* **Reserve books:** The loan periods are set by the faculty member and can be 2 hours, 4 hours, 24 hours, or 3 days [2].
+
+================================================================================
+Q2 How many reserve items may a student borrow at one time?
+Gold: Students may borrow up to three reserve items at one time.
+Agent: Students may borrow up to three reserve items at one time [1].
+
+================================================================================
+Q3 How do I request library equipment, and how far in advance must I reserve it?
+Gold: From the equipment page, click "Reserve this item", log into the library account, and make the request. Reservations must be made at least 1 day in advance.
+Agent: To request library equipment, use the category links to find the item you want, click the blue "Reserve this item" button on the equipment page to open HoyaSearch, and then log into your library account to make the request [1]. 
+
+Reservations must be made at least 1 day in advance [2].
+
+================================================================================
+Q4 How long do Interlibrary Loan requests usually take to arrive?
+Gold: Average delivery times for Interlibrary Loans are 7-14 business days.
+Agent: Average delivery times for Interlibrary Loans are 7-14 business days [1].
+
+================================================================================
+Q5 Where is food allowed in Lauinger Library, and what kinds of food are prohibited?
+Gold: Food is allowed only on the second floor of Lauinger Library. Examples of prohibited food include pizza, hamburgers, fries, ice cream, hot subs, and other smelly, greasy, or messy foods.
+Agent: Based on the provided context:
+
+* **Where food is allowed:** Food is allowed ONLY on the second floor of Lauinger Library, and is prohibited on all other floors [1]. 
+* **What kinds of food are prohibited:** Prohibited foods include pizza, hamburgers, fries, ice cream, hot subs, or any other smelly, greasy, or messy foods [2].

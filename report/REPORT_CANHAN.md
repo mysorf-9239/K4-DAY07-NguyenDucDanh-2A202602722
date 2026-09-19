@@ -231,20 +231,26 @@ có ngữ nghĩa.
 
 ## 4. Dự đoán độ tương tự (Similarity Predictions) — Cá nhân (5 điểm)
 
-Các dự đoán dưới đây được ghi trước khi chạy embedding/similarity experiment.
+Các dự đoán dưới đây được ghi trước khi chạy embedding/similarity experiment. Kết quả thực tế được đo bằng
+`gemini-embedding-001`.
 
-| Cặp | Câu A                                                | Câu B                                                            | Dự đoán          | Điểm thực tế | Đúng?    |
-|-----|------------------------------------------------------|------------------------------------------------------------------|------------------|--------------|----------|
-| 1   | `Students can borrow books for six weeks.`           | `Undergraduate learners may keep library books for six weeks.`   | Cao              | TODO CP6     | TODO CP6 |
-| 2   | `Faculty members can place books on course reserve.` | `Professors may request books for course reserves.`              | Cao              | TODO CP6     | TODO CP6 |
-| 3   | `Equipment must be reserved one day in advance.`     | `Library equipment reservations should be made ahead of pickup.` | Cao              | TODO CP6     | TODO CP6 |
-| 4   | `Interlibrary loans may take several business days.` | `Pizza is not permitted on most library floors.`                 | Thấp             | TODO CP6     | TODO CP6 |
-| 5   | `Students can borrow reserve items.`                 | `Faculty can choose reserve loan periods.`                       | Trung bình / Cao | TODO CP6     | TODO CP6 |
+| Cặp | Câu A                                                | Câu B                                                            | Dự đoán          | Điểm thực tế | Đúng?                                  |
+|-----|------------------------------------------------------|------------------------------------------------------------------|------------------|-------------:|----------------------------------------|
+| 1   | `Students can borrow books for six weeks.`           | `Undergraduate learners may keep library books for six weeks.`   | Cao              |       0.8821 | Đúng                                   |
+| 2   | `Faculty members can place books on course reserve.` | `Professors may request books for course reserves.`              | Cao              |       0.9015 | Đúng                                   |
+| 3   | `Equipment must be reserved one day in advance.`     | `Library equipment reservations should be made ahead of pickup.` | Cao              |       0.8470 | Đúng                                   |
+| 4   | `Interlibrary loans may take several business days.` | `Pizza is not permitted on most library floors.`                 | Thấp             |       0.5931 | Đúng tương đối — thấp nhất trong 5 cặp |
+| 5   | `Students can borrow reserve items.`                 | `Faculty can choose reserve loan periods.`                       | Trung bình / Cao |       0.7875 | Đúng                                   |
 
 **Kết quả nào bất ngờ nhất? Điều này nói gì về cách embeddings biểu diễn ý nghĩa?**
 
-> **TODO CP6.** So sánh prediction với similarity score thực tế, đặc biệt ở cặp 5 vì hai câu cùng thuộc domain
-> `course reserves` nhưng nói về hai audience và hai hành động khác nhau.
+Cặp 4 là kết quả đáng chú ý nhất: hai câu nói về hai nội dung rất khác nhau nhưng cosine similarity vẫn đạt `0.5931`.
+Dù đây là điểm thấp nhất trong năm cặp, nó cho thấy embedding không chỉ phản ánh sự trùng khớp trực tiếp của từ khóa mà
+còn có thể giữ một phần tín hiệu chung về domain và kiểu nội dung chính sách thư viện.
+
+Cặp 5 đạt `0.7875` dù hai câu nói về hai audience và hai hành động khác nhau. Điều này cho thấy embedding có thể đánh
+trọng số khá lớn cho việc hai câu cùng thuộc domain `course reserves`/borrowing. Vì vậy, semantic similarity cao không
+đồng nghĩa với hai câu có cùng đáp án chi tiết; metadata filtering và kiểm tra nội dung chunk vẫn cần thiết.
 
 ---
 
@@ -253,31 +259,80 @@ Các dự đoán dưới đây được ghi trước khi chạy embedding/simila
 Nhóm thống nhất cùng một corpus, cùng 5 benchmark query và gold answer. Chiến lược cá nhân của tôi là **heading-aware
 chunking kết hợp `RecursiveChunker` fallback**.
 
-Ở CP5, chiến lược này ingest:
+Ở CP5, chiến lược này ingest 8 documents thành 36 chunks. CP6 sử dụng real semantic embedding:
 
 ```text
 Strategy           : heading_aware
-Embedding backend  : mock embeddings fallback
+Embedding backend  : gemini-embedding-001
 Documents          : 8
 Chunks loaded      : 36
+Top-k              : 3
 ```
 
-Mock embedding ở CP5 chỉ dùng để xác nhận benchmark pipeline hoạt động; ranking và score cuối cùng sẽ được đo bằng
-semantic embedding thật ở CP6.
+| # | Câu hỏi (Query)                                                                   | Top-1 Chunk truy xuất được (tóm tắt)                                                             | Điểm Score | Có liên quan không? | Câu trả lời của Agent (tóm tắt)                                                                                |
+|---|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------:|---------------------|----------------------------------------------------------------------------------------------------------------|
+| 1 | How long can I borrow books?                                                      | `borrowing-books-undergraduate#0` — bảng Undergraduate Students, loan period 6 weeks             |     0.7045 | Có                  | Undergraduate students mượn 6 tuần; agent cũng phân biệt thêm reserve-book periods từ context khác             |
+| 2 | How many reserve items may a student borrow at one time?                          | `course-reserves-student#0` — Book Reserves, chứa giới hạn tối đa 3 items                        |     0.8385 | Có                  | Students may borrow up to three reserve items at one time                                                      |
+| 3 | How do I request library equipment, and how far in advance must I reserve it?     | `equipment-loans#0` — Requesting Equipment; top-2 `#1` chứa yêu cầu reserve trước ít nhất 1 ngày |     0.7839 | Có                  | Chọn “Reserve this item”, đăng nhập HoyaSearch và reserve ít nhất 1 ngày trước                                 |
+| 4 | How long do Interlibrary Loan requests usually take to arrive?                    | `interlibrary-consortium-loans#3` — Items from Other Locations                                   |     0.7744 | Có                  | Average delivery time is 7–14 business days                                                                    |
+| 5 | Where is food allowed in Lauinger Library, and what kinds of food are prohibited? | `library-use-policy#1` — General Policies; top-2 `#2` chứa danh sách food bị cấm                 |     0.8566 | Có                  | Food chỉ được phép ở tầng 2; pizza, hamburgers, fries, ice cream, hot subs và đồ ăn smelly/greasy/messy bị cấm |
 
-| # | Câu hỏi (Query)                                                                   | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
-|---|-----------------------------------------------------------------------------------|--------------------------------------|------------|--------------------------------|---------------------------------|
-| 1 | How long can I borrow books?                                                      | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
-| 2 | How many reserve items may a student borrow at one time?                          | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
-| 3 | How do I request library equipment, and how far in advance must I reserve it?     | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
-| 4 | How long do Interlibrary Loan requests usually take to arrive?                    | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
-| 5 | Where is food allowed in Lauinger Library, and what kinds of food are prohibited? | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **5 / 5**
 
-**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **TODO CP6 / 5**
+### Chấm điểm Retrieval Quality
+
+| Câu      |      Điểm | Lý do                                                                      |
+|----------|----------:|----------------------------------------------------------------------------|
+| Q1       |       2/2 | Chunk đúng ở top-1 sau metadata filter; agent trả lời đúng `6 weeks`       |
+| Q2       |       2/2 | Answer-bearing chunk ở top-1; agent trả lời đúng giới hạn 3 items          |
+| Q3       |       2/2 | Top-1 và top-2 kết hợp đủ hai ý của gold answer; agent tổng hợp đúng       |
+| Q4       |       2/2 | Chunk chứa `7-14 business days` ở top-1; agent trả lời đúng                |
+| Q5       |       2/2 | Top-1 và top-2 kết hợp đủ location + prohibited foods; agent tổng hợp đúng |
+| **Tổng** | **10/10** | **5/5 query đạt yêu cầu**                                                  |
+
+### A/B Metadata Filtering — Q1
+
+**Không filter:**
+
+```text
+1. score=0.7067  borrowing-books-faculty         audience=faculty
+2. score=0.7045  borrowing-books-undergraduate   audience=student
+3. score=0.6792  course-reserves-student         audience=student
+```
+
+**Có `metadata_filter={"audience": "student"}`:**
+
+```text
+1. score=0.7045  borrowing-books-undergraduate   audience=student
+2. score=0.6792  course-reserves-student         audience=student
+3. score=0.6603  course-reserves-student         audience=student
+```
+
+Metadata filtering có ích rõ ràng: nếu không filter, policy faculty đứng top-1. Khi lọc `audience=student`, tài liệu
+faculty
+bị loại khỏi candidate set và undergraduate policy trở thành top-1, đúng với gold answer.
+
+### Failure Case & Phân tích
+
+**Failure case:** Q1 khi chạy không có metadata filter.
+
+**Hiện tượng:** `borrowing-books-faculty` đứng top-1 dù benchmark cần policy dành cho undergraduate student.
+
+**Nguyên nhân:** Query “How long can I borrow books?” cố ý không nêu audience. Hai tài liệu faculty và undergraduate có
+chủ đề, cấu trúc và từ vựng rất giống nhau nên cosine similarity không đủ để tự xác định đúng đối tượng.
+
+**Cách sửa:** lọc candidate trước similarity search bằng `metadata_filter={"audience": "student"}`. Trong hệ thống thực
+tế, nếu chưa biết audience thì application nên hỏi lại người dùng hoặc lấy audience từ session/profile trước retrieval.
+
+### Nhận xét về Heading-aware Strategy
+
+Heading-aware chunking giữ được context section tốt trên corpus policy Markdown. Q3 và Q5 cho thấy một gold answer có
+thể cần tổng hợp từ hai chunk liên tiếp; cả hai đều xuất hiện trong top-2 nên agent vẫn trả lời đầy đủ. Vì vậy, đánh giá
+retrieval chỉ theo `doc_id` là chưa đủ; cần kiểm tra nội dung chunk trong top-k.
 
 **Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
 
-> **TODO sau phần demo/so sánh nhóm.**
+> Điền sau phần demo/so sánh nhóm khi có kết quả thực tế của các thành viên còn lại.
 
 ---
 
@@ -285,9 +340,9 @@ semantic embedding thật ở CP6.
 
 | Tiêu chí                                        | Điểm tự đánh giá |
 |-------------------------------------------------|-----------------:|
-| Khởi động (Warm-up)                             |              / 5 |
-| Hướng tiếp cận của tôi (My Approach)            |             / 10 |
-| Hoàn thiện code (Core Implementation — tests)   |             / 30 |
-| Dự đoán độ tương tự (Similarity Predictions)    |              / 5 |
-| Kết quả truy xuất của tôi (Competition Results) |             / 10 |
-| **Tổng phần cá nhân**                           |         **/ 60** |
+| Khởi động (Warm-up)                             |            5 / 5 |
+| Hướng tiếp cận của tôi (My Approach)            |          10 / 10 |
+| Hoàn thiện code (Core Implementation — tests)   |          30 / 30 |
+| Dự đoán độ tương tự (Similarity Predictions)    |            5 / 5 |
+| Kết quả truy xuất của tôi (Competition Results) |          10 / 10 |
+| **Tổng phần cá nhân**                           |      **60 / 60** |
