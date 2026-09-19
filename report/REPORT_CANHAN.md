@@ -233,36 +233,47 @@ có ngữ nghĩa.
 
 Các dự đoán dưới đây được ghi trước khi chạy embedding/similarity experiment.
 
-| Cặp | Câu A                                                | Câu B                                                            | Dự đoán          | Điểm thực tế | Đúng? |
-|-----|------------------------------------------------------|------------------------------------------------------------------|------------------|--------------|-------|
-| 1   | `Students can borrow books for six weeks.`           | `Undergraduate learners may keep library books for six weeks.`   | Cao              | TODO         | TODO  |
-| 2   | `Faculty members can place books on course reserve.` | `Professors may request books for course reserves.`              | Cao              | TODO         | TODO  |
-| 3   | `Equipment must be reserved one day in advance.`     | `Library equipment reservations should be made ahead of pickup.` | Cao              | TODO         | TODO  |
-| 4   | `Interlibrary loans may take several business days.` | `Pizza is not permitted on most library floors.`                 | Thấp             | TODO         | TODO  |
-| 5   | `Students can borrow reserve items.`                 | `Faculty can choose reserve loan periods.`                       | Trung bình / Cao | TODO         | TODO  |
+| Cặp | Câu A                                                | Câu B                                                            | Dự đoán          | Điểm thực tế | Đúng?    |
+|-----|------------------------------------------------------|------------------------------------------------------------------|------------------|--------------|----------|
+| 1   | `Students can borrow books for six weeks.`           | `Undergraduate learners may keep library books for six weeks.`   | Cao              | TODO CP6     | TODO CP6 |
+| 2   | `Faculty members can place books on course reserve.` | `Professors may request books for course reserves.`              | Cao              | TODO CP6     | TODO CP6 |
+| 3   | `Equipment must be reserved one day in advance.`     | `Library equipment reservations should be made ahead of pickup.` | Cao              | TODO CP6     | TODO CP6 |
+| 4   | `Interlibrary loans may take several business days.` | `Pizza is not permitted on most library floors.`                 | Thấp             | TODO CP6     | TODO CP6 |
+| 5   | `Students can borrow reserve items.`                 | `Faculty can choose reserve loan periods.`                       | Trung bình / Cao | TODO CP6     | TODO CP6 |
 
 **Kết quả nào bất ngờ nhất? Điều này nói gì về cách embeddings biểu diễn ý nghĩa?**
 
-> **TODO sau khi chạy experiment.** So sánh prediction với similarity score thực tế, đặc biệt ở cặp 5 vì hai câu cùng
-> thuộc domain `course reserves` nhưng nói về hai audience và hai hành động khác nhau. Đây là trường hợp hữu ích để quan
-> sát embedding ưu tiên mức độ giống chủ đề hay giống ý nghĩa chi tiết.
+> **TODO CP6.** So sánh prediction với similarity score thực tế, đặc biệt ở cặp 5 vì hai câu cùng thuộc domain
+> `course reserves` nhưng nói về hai audience và hai hành động khác nhau.
 
 ---
 
 ## 5. Kết quả truy xuất của tôi (Competition Results) — Cá nhân (10 điểm)
 
-Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân của bạn trong gói `src`. **5 câu hỏi này phải trùng với các
-thành viên cùng nhóm** (xem `REPORT_NHOM.md`).
+Nhóm thống nhất cùng một corpus, cùng 5 benchmark query và gold answer. Chiến lược cá nhân của tôi là **heading-aware
+chunking kết hợp `RecursiveChunker` fallback**.
 
-| # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
-|---|-----------------|--------------------------------------|------------|--------------------------------|---------------------------------|
-| 1 | TODO CP5        | TODO                                 | TODO       | TODO                           | TODO                            |
-| 2 | TODO CP5        | TODO                                 | TODO       | TODO                           | TODO                            |
-| 3 | TODO CP5        | TODO                                 | TODO       | TODO                           | TODO                            |
-| 4 | TODO CP5        | TODO                                 | TODO       | TODO                           | TODO                            |
-| 5 | TODO CP5        | TODO                                 | TODO       | TODO                           | TODO                            |
+Ở CP5, chiến lược này ingest:
 
-**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **TODO / 5**
+```text
+Strategy           : heading_aware
+Embedding backend  : mock embeddings fallback
+Documents          : 8
+Chunks loaded      : 36
+```
+
+Mock embedding ở CP5 chỉ dùng để xác nhận benchmark pipeline hoạt động; ranking và score cuối cùng sẽ được đo bằng
+semantic embedding thật ở CP6.
+
+| # | Câu hỏi (Query)                                                                   | Top-1 Chunk truy xuất được (tóm tắt) | Điểm Score | Có liên quan không? (Relevant) | Câu trả lời của Agent (tóm tắt) |
+|---|-----------------------------------------------------------------------------------|--------------------------------------|------------|--------------------------------|---------------------------------|
+| 1 | How long can I borrow books?                                                      | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+| 2 | How many reserve items may a student borrow at one time?                          | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+| 3 | How do I request library equipment, and how far in advance must I reserve it?     | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+| 4 | How long do Interlibrary Loan requests usually take to arrive?                    | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+| 5 | Where is food allowed in Lauinger Library, and what kinds of food are prohibited? | TODO CP6                             | TODO CP6   | TODO CP6                       | TODO CP6                        |
+
+**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **TODO CP6 / 5**
 
 **Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
 
